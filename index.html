@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Умный AI/FAQ-чат-бот</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="chat-shell" aria-label="Умный AI/FAQ-чат-бот">
+      <section class="hero">
+        <p class="eyebrow">Учебный проект</p>
+        <h1>AI/FAQ-чат-бот с характером</h1>
+        <p>
+          Бот хранит историю, меняет тему, выбирает характер, оценивает ответы,
+          берёт FAQ из JSON и может подключиться к AI backend.
+        </p>
+      </section>
+
+      <section class="toolbar" aria-label="Настройки бота">
+        <label>
+          Характер
+          <select id="personaSelect">
+            <option value="friendly">Дружелюбный</option>
+            <option value="expert">Экспертный</option>
+            <option value="strict">Строгий</option>
+            <option value="funny">Смешной</option>
+          </select>
+        </label>
+        <button id="themeToggle" type="button">🌙 Тёмная тема</button>
+        <button id="clearChat" type="button">🧹 Очистить чат</button>
+      </section>
+
+      <section class="chat-card">
+        <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+
+        <div class="quick-actions" aria-label="Быстрые вопросы">
+          <button type="button" data-question="Что ты умеешь?">Что ты умеешь?</button>
+          <button type="button" data-question="Сколько стоит курс?">Цена</button>
+          <button type="button" data-question="Как начать обучение?">Старт</button>
+          <button type="button" data-question="Твоё мнение про JavaScript?">Мнение</button>
+          <button type="button" data-question="Что такое RAG?">RAG</button>
+          <button type="button" data-question="Как подключить настоящий AI API?">AI API</button>
+        </div>
+
+        <form id="chatForm" class="chat-form">
+          <label class="sr-only" for="userInput">Сообщение для чат-бота</label>
+          <input
+            id="userInput"
+            name="message"
+            type="text"
+            placeholder="Например: что ты думаешь про Telegram-бота?"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Отправить</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
