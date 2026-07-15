@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Умный FAQ-чат-бот</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="chat-shell" aria-label="Умный FAQ-чат-бот">
+      <section class="hero">
+        <p class="eyebrow">Учебный проект</p>
+        <h1>Умный FAQ-чат-бот</h1>
+        <p>
+          Напиши вопрос обычными словами — бот найдёт подходящую тему по ключевым словам
+          и ответит прямо в браузере.
+        </p>
+      </section>
+
+      <section class="chat-card">
+        <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+
+        <div class="quick-actions" aria-label="Быстрые вопросы">
+          <button type="button" data-question="Что ты умеешь?">Что ты умеешь?</button>
+          <button type="button" data-question="Сколько стоит курс?">Цена</button>
+          <button type="button" data-question="Как связаться с поддержкой?">Поддержка</button>
+          <button type="button" data-question="Твоё мнение про JavaScript?">Мнение</button>
+        </div>
+
+        <form id="chatForm" class="chat-form">
+          <label class="sr-only" for="userInput">Сообщение для чат-бота</label>
+          <input
+            id="userInput"
+            name="message"
+            type="text"
+            placeholder="Например: как начать обучение?"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Отправить</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
