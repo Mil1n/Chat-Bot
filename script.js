@@ -5,12 +5,29 @@ const quickButtons = document.querySelectorAll("[data-question]");
 const personaSelect = document.querySelector("#personaSelect");
 const themeToggle = document.querySelector("#themeToggle");
 const clearChat = document.querySelector("#clearChat");
+const userName = document.querySelector("#userName");
+const debateMode = document.querySelector("#debateMode");
+const customPersona = document.querySelector("#customPersona");
+const savePersona = document.querySelector("#savePersona");
+const faqAdminForm = document.querySelector("#faqAdminForm");
+const faqTopic = document.querySelector("#faqTopic");
+const faqKeywords = document.querySelector("#faqKeywords");
+const faqAnswer = document.querySelector("#faqAnswer");
+const statsPanel = document.querySelector("#statsPanel");
+const knowledgeUpload = document.querySelector("#knowledgeUpload");
+const voiceInput = document.querySelector("#voiceInput");
+const exportChat = document.querySelector("#exportChat");
 
 const storageKeys = {
   messages: "chatBot.messages",
   theme: "chatBot.theme",
   persona: "chatBot.persona",
   ratings: "chatBot.ratings",
+  customFaq: "chatBot.customFaq",
+  customKnowledge: "chatBot.customKnowledge",
+  customPersona: "chatBot.customPersona",
+  userProfile: "chatBot.userProfile",
+  debate: "chatBot.debate",
 };
 
 const personaPrefixes = {
@@ -18,17 +35,20 @@ const personaPrefixes = {
   expert: "🧠 Экспертно: ",
   strict: "📌 Коротко и строго: ",
   funny: "😄 Моё ботское мнение: ",
+  custom: "🎭 По моей личности: ",
 };
 
 const greetings = ["привет", "здравствуй", "hello", "hi", "добрый"];
 const farewells = ["пока", "выход", "стоп", "до свидания", "закончить"];
 const opinionTriggers = ["мнение", "думаешь", "считаешь", "позиция", "как лучше", "что выбрать"];
+const debateTriggers = ["поспорь", "спор", "не согласен", "дискуссия", "возрази"];
 
 let faq = [];
 let opinions = [];
 let knowledge = [];
 let messages = [];
 let ratings = loadFromStorage(storageKeys.ratings, []);
+let userProfile = loadFromStorage(storageKeys.userProfile, { name: "" });
 
 function loadFromStorage(key, fallback) {
   try {
@@ -50,10 +70,17 @@ function includesAny(text, words) {
   return words.some((word) => text.includes(normalizeText(word)));
 }
 
+function keywordize(text) {
+  return normalizeText(text)
+    .split(/[^a-zа-я0-9]+/i)
+    .filter((word) => word.length > 2);
+}
+
 function getTopicsHint() {
   const faqTopics = faq.map((item) => item.topic);
   const opinionTopics = opinions.map((item) => `мнение: ${item.topic}`);
-  return [...faqTopics, ...opinionTopics, "RAG", "AI API"].join(", ");
+  const knowledgeTopics = knowledge.map((item) => `источник: ${item.title}`);
+  return [...faqTopics, ...opinionTopics, ...knowledgeTopics, "RAG", "AI API"].join(", ");
 }
 
 function getBestScoredItem(items, normalizedMessage) {
@@ -71,34 +98,63 @@ function getBestScoredItem(items, normalizedMessage) {
     }
   });
 
-  return bestMatch;
+  return { item: bestMatch, score: bestScore };
+}
+
+function getConfidence(score) {
+  if (score >= 2) {
+    return "уверен";
+  }
+
+  if (score === 1) {
+    return "примерно уверен";
+  }
+
+  return "лучше проверить";
 }
 
 function withPersona(text) {
-  return `${personaPrefixes[personaSelect.value]}${text}`;
+  const namePart = userProfile.name ? `${userProfile.name}, ` : "";
+  const customNote = personaSelect.value === "custom" && customPersona.value.trim()
+    ? ` (${customPersona.value.trim()})`
+    : "";
+  return `${personaPrefixes[personaSelect.value]}${namePart}${text}${customNote}`;
+}
+
+function addDebateFrame(answer) {
+  if (!debateMode.checked) {
+    return answer;
+  }
+
+  return `${answer}\n\n🗣️ Альтернативная точка зрения: можно спорить с этим ответом, если цель — не скорость, а глубина и качество решения.`;
+}
+
+function formatAnswer(answer, confidence, source) {
+  const sourceLine = source ? `\nИсточник: ${source}` : "";
+  return `${addDebateFrame(answer)}\n\nУверенность: ${confidence}.${sourceLine}`;
 }
 
 function findOpinionAnswer(normalizedMessage) {
-  if (!includesAny(normalizedMessage, opinionTriggers)) {
+  if (!includesAny(normalizedMessage, opinionTriggers) && !includesAny(normalizedMessage, debateTriggers)) {
     return null;
   }
 
-  const bestOpinion = getBestScoredItem(opinions, normalizedMessage);
-  const answer = bestOpinion
-    ? bestOpinion.answer
+  const { item, score } = getBestScoredItem(opinions, normalizedMessage);
+  const answer = item
+    ? item.answer
     : "для учебного бота главное — не казаться всезнающим, а честно объяснять логику и помогать двигаться дальше.";
 
-  return withPersona(answer);
+  return formatAnswer(withPersona(answer), getConfidence(score), item ? `faq.json / opinions / ${item.topic}` : null);
 }
 
 function findKnowledgeAnswer(normalizedMessage) {
-  const bestDocument = getBestScoredItem(knowledge, normalizedMessage);
+  const { item, score } = getBestScoredItem(knowledge, normalizedMessage);
 
-  if (!bestDocument) {
+  if (!item) {
     return null;
   }
 
-  return `📚 Нашёл в базе знаний «${bestDocument.title}»: ${bestDocument.content}`;
+  return formatAnswer(`📚 Нашёл в базе знаний «${item.title}»: ${item.content}`, getConfidence(score), item.source || item.title);
 }
 
 async function askAiBackend(message) {
@@ -109,6 +165,9 @@ async function askAiBackend(message) {
       body: JSON.stringify({
         message,
         persona: personaSelect.value,
+        customPersona: customPersona.value,
+        debate: debateMode.checked,
+        userProfile,
         history: messages.slice(-8),
       }),
     });
@@ -128,11 +187,11 @@ function findLocalAnswer(message) {
   const normalizedMessage = normalizeText(message);
 
   if (includesAny(normalizedMessage, greetings)) {
-    return withPersona("привет! Спроси про старт, цену, Telegram, технологии, RAG, AI API или моё мнение.");
+    return formatAnswer(withPersona("привет! Спроси про старт, цену, Telegram, технологии, RAG, AI API или моё мнение."), "уверен");
   }
 
   if (includesAny(normalizedMessage, farewells)) {
-    return withPersona("пока! Если захочешь продолжить, просто напиши новый вопрос.");
+    return formatAnswer(withPersona("пока! Если захочешь продолжить, просто напиши новый вопрос."), "уверен");
   }
 
   const opinionAnswer = findOpinionAnswer(normalizedMessage);
@@ -147,13 +206,13 @@ function findLocalAnswer(message) {
     return knowledgeAnswer;
   }
 
-  const bestMatch = getBestScoredItem(faq, normalizedMessage);
+  const { item, score } = getBestScoredItem(faq, normalizedMessage);
 
-  if (bestMatch) {
-    return bestMatch.answer;
+  if (item) {
+    return formatAnswer(item.answer, getConfidence(score), `faq.json / ${item.topic}`);
   }
 
-  return `Я пока не знаю точный ответ. Попробуй спросить про темы: ${getTopicsHint()}.`;
+  return formatAnswer(`Я пока не знаю точный ответ. Попробуй спросить про темы: ${getTopicsHint()}.`, "лучше проверить");
 }
 
 async function getBotAnswer(message) {
@@ -200,6 +259,23 @@ function addMessage(text, sender) {
   return message;
 }
 
+function typeBotAnswer(message, answer) {
+  message.text = "";
+  const characters = [...answer];
+  let index = 0;
+
+  const timer = window.setInterval(() => {
+    message.text += characters[index] || "";
+    index += 1;
+    saveToStorage(storageKeys.messages, messages);
+    renderMessages();
+
+    if (index >= characters.length) {
+      window.clearInterval(timer);
+    }
+  }, 12);
+}
+
 async function sendMessage(text) {
   const cleanText = text.trim();
 
@@ -212,9 +288,7 @@ async function sendMessage(text) {
 
   const thinkingMessage = addMessage("Печатаю ответ…", "bot");
   const answer = await getBotAnswer(cleanText);
-  thinkingMessage.text = answer;
-  saveToStorage(storageKeys.messages, messages);
-  renderMessages();
+  typeBotAnswer(thinkingMessage, answer);
 }
 
 function setTheme(theme) {
@@ -223,27 +297,53 @@ function setTheme(theme) {
   saveToStorage(storageKeys.theme, theme);
 }
 
+function updateStats() {
+  const up = ratings.filter((item) => item.rating === "up").length;
+  const down = ratings.filter((item) => item.rating === "down").length;
+  const weakTopics = down > up ? "Нужно улучшить ответы с плохими оценками." : "Критичных слабых мест пока не видно.";
+  statsPanel.textContent = `👍 ${up} / 👎 ${down}. ${weakTopics}`;
+}
+
+function exportDialog() {
+  const content = messages
+    .map((message) => `[${message.createdAt}] ${message.sender === "user" ? "Пользователь" : "Бот"}: ${message.text}`)
+    .join("\n\n");
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "chat-history.md";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 async function loadData() {
   const [faqResponse, knowledgeResponse] = await Promise.all([
     fetch("faq.json"),
     fetch("knowledge.json"),
   ]);
   const faqData = await faqResponse.json();
-  faq = faqData.faq;
+  faq = [...faqData.faq, ...loadFromStorage(storageKeys.customFaq, [])];
   opinions = faqData.opinions;
-  knowledge = await knowledgeResponse.json();
+  knowledge = [...(await knowledgeResponse.json()), ...loadFromStorage(storageKeys.customKnowledge, [])];
 }
 
 function boot() {
   const savedTheme = localStorage.getItem(storageKeys.theme) || "light";
   const savedPersona = localStorage.getItem(storageKeys.persona) || "friendly";
+  const savedCustomPersona = localStorage.getItem(storageKeys.customPersona) || "";
+  const savedDebate = localStorage.getItem(storageKeys.debate) === "true";
   messages = loadFromStorage(storageKeys.messages, []);
 
+  userName.value = userProfile.name;
   personaSelect.value = savedPersona;
+  customPersona.value = savedCustomPersona;
+  debateMode.checked = savedDebate;
   setTheme(savedTheme);
+  updateStats();
 
   if (messages.length === 0) {
-    addMessage("Привет! Я умный бот в браузере: помню чат, меняю характер, читаю JSON и могу работать с AI backend.", "bot");
+    addMessage("Привет! Я умный бот: помню профиль, редактирую FAQ, цитирую источники, спорю и экспортирую чат.", "bot");
   } else {
     renderMessages();
   }
@@ -263,6 +363,23 @@ personaSelect.addEventListener("change", () => {
   addMessage(`Характер переключён: ${personaSelect.selectedOptions[0].textContent}.`, "bot");
 });
 
+userName.addEventListener("change", () => {
+  userProfile.name = userName.value.trim();
+  saveToStorage(storageKeys.userProfile, userProfile);
+  addMessage(userProfile.name ? `Запомнил имя: ${userProfile.name}.` : "Имя очищено.", "bot");
+});
+
+savePersona.addEventListener("click", () => {
+  saveToStorage(storageKeys.customPersona, customPersona.value.trim());
+  personaSelect.value = "custom";
+  saveToStorage(storageKeys.persona, "custom");
+  addMessage("Сохранил новую личность и включил характер «Свой».", "bot");
+});
+
+debateMode.addEventListener("change", () => {
+  saveToStorage(storageKeys.debate, String(debateMode.checked));
+});
+
 themeToggle.addEventListener("click", () => {
   const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
   setTheme(nextTheme);
@@ -274,6 +391,58 @@ clearChat.addEventListener("click", () => {
   renderMessages();
   addMessage("История очищена. Начинаем заново!", "bot");
 });
+
+faqAdminForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const newItem = {
+    topic: faqTopic.value.trim(),
+    keywords: faqKeywords.value.split(",").map((keyword) => keyword.trim()).filter(Boolean),
+    answer: faqAnswer.value.trim(),
+  };
+  const customFaq = [...loadFromStorage(storageKeys.customFaq, []), newItem];
+  saveToStorage(storageKeys.customFaq, customFaq);
+  faq.push(newItem);
+  faqAdminForm.reset();
+  addMessage(`Добавил FAQ-тему «${newItem.topic}».`, "bot");
+});
+
+knowledgeUpload.addEventListener("change", async () => {
+  const uploaded = [];
+
+  for (const file of knowledgeUpload.files) {
+    const content = await file.text();
+    uploaded.push({
+      title: file.name,
+      source: file.name,
+      keywords: keywordize(`${file.name} ${content}`).slice(0, 40),
+      content: content.slice(0, 700),
+    });
+  }
+
+  const customKnowledge = [...loadFromStorage(storageKeys.customKnowledge, []), ...uploaded];
+  saveToStorage(storageKeys.customKnowledge, customKnowledge);
+  knowledge.push(...uploaded);
+  addMessage(`Загрузил файлов в базу знаний: ${uploaded.length}.`, "bot");
+});
+
+voiceInput.addEventListener("click", () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    addMessage("Голосовой ввод не поддерживается в этом браузере.", "bot");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "ru-RU";
+  recognition.start();
+  recognition.onresult = (event) => {
+    userInput.value = event.results[0][0].transcript;
+    sendMessage(userInput.value);
+  };
+});
+
+exportChat.addEventListener("click", exportDialog);
 
 chatMessages.addEventListener("click", (event) => {
   const button = event.target.closest("[data-rating]");
@@ -289,6 +458,7 @@ chatMessages.addEventListener("click", (event) => {
   });
   saveToStorage(storageKeys.ratings, ratings);
   button.closest(".rating").textContent = "Спасибо за оценку!";
+  updateStats();
 });
 
 loadData()

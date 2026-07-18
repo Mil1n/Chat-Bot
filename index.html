@@ -12,12 +12,16 @@
         <p class="eyebrow">Учебный проект</p>
         <h1>AI/FAQ-чат-бот с характером</h1>
         <p>
-          Бот хранит историю, меняет тему, выбирает характер, оценивает ответы,
-          берёт FAQ из JSON и может подключиться к AI backend.
+          Бот хранит профиль, редактирует FAQ, спорит, цитирует источники,
+          принимает файлы, экспортирует чат и может подключиться к AI backend.
         </p>
       </section>
 
       <section class="toolbar" aria-label="Настройки бота">
+        <label>
+          Имя
+          <input id="userName" type="text" placeholder="Как тебя зовут?" />
+        </label>
         <label>
           Характер
           <select id="personaSelect">
@@ -25,10 +29,46 @@
             <option value="expert">Экспертный</option>
             <option value="strict">Строгий</option>
             <option value="funny">Смешной</option>
+            <option value="custom">Свой</option>
           </select>
         </label>
+        <label class="checkbox-label">
+          <input id="debateMode" type="checkbox" />
+          Режим дискуссии
+        </label>
         <button id="themeToggle" type="button">🌙 Тёмная тема</button>
+        <button id="voiceInput" type="button">🎙️ Голос</button>
+        <button id="exportChat" type="button">⬇️ Экспорт</button>
         <button id="clearChat" type="button">🧹 Очистить чат</button>
+      </section>
+
+      <section class="dashboard" aria-label="Расширенные настройки">
+        <details>
+          <summary>🎭 Редактор личности</summary>
+          <textarea id="customPersona" rows="4" placeholder="Например: ты спокойный наставник, который любит спорить аргументами и честно говорит, когда не уверен."></textarea>
+          <button id="savePersona" type="button">Сохранить персону</button>
+        </details>
+
+        <details>
+          <summary>🛠️ Админка FAQ</summary>
+          <form id="faqAdminForm" class="admin-form">
+            <input id="faqTopic" type="text" placeholder="Тема" required />
+            <input id="faqKeywords" type="text" placeholder="Ключевые слова через запятую" required />
+            <textarea id="faqAnswer" rows="3" placeholder="Ответ бота" required></textarea>
+            <button type="submit">Добавить FAQ</button>
+          </form>
+        </details>
+
+        <details>
+          <summary>📚 Загрузка знаний</summary>
+          <input id="knowledgeUpload" type="file" accept=".txt,.md" multiple />
+          <p class="hint">Загруженные файлы добавляются в локальную базу знаний и используются как источники.</p>
+        </details>
+
+        <details open>
+          <summary>📊 Статистика</summary>
+          <div id="statsPanel" class="stats-panel">Пока нет оценок.</div>
+        </details>
       </section>
 
       <section class="chat-card">
@@ -39,6 +79,7 @@
           <button type="button" data-question="Сколько стоит курс?">Цена</button>
           <button type="button" data-question="Как начать обучение?">Старт</button>
           <button type="button" data-question="Твоё мнение про JavaScript?">Мнение</button>
+          <button type="button" data-question="Поспорь со мной про Telegram-бота">Спор</button>
           <button type="button" data-question="Что такое RAG?">RAG</button>
           <button type="button" data-question="Как подключить настоящий AI API?">AI API</button>
         </div>

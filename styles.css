@@ -214,3 +214,77 @@ button, input, select { font: inherit; }
   .chat-form button { padding: 14px 22px; }
   .message { max-width: 92%; }
 }
+
+.dashboard {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dashboard details {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+}
+
+.dashboard summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.dashboard textarea,
+.dashboard input[type="text"],
+.toolbar input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--card);
+}
+
+.dashboard textarea {
+  margin-top: 12px;
+  resize: vertical;
+}
+
+.dashboard button,
+.admin-form button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 14px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  color: #ffffff;
+  background: var(--primary);
+  font-weight: 700;
+}
+
+.admin-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 8px !important;
+  min-height: 42px;
+  color: var(--text) !important;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.stats-panel {
+  margin-top: 10px;
+  color: var(--muted);
+}

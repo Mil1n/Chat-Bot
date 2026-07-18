@@ -27,7 +27,7 @@ async function readRequestBody(request) {
 }
 
 async function handleAiChat(request, response) {
-  const { message, persona, history } = await readRequestBody(request);
+  const { message, persona, customPersona, debate, userProfile, history } = await readRequestBody(request);
 
   if (!process.env.OPENAI_API_KEY) {
     sendJson(response, 503, {
@@ -50,7 +50,10 @@ async function handleAiChat(request, response) {
           role: "system",
           content:
             `Ты браузерный учебный чат-бот с характером '${persona}'. ` +
-            "Имей аккуратное мнение, объясняй просто, не выдумывай факты и признавай неопределённость.",
+            `Имя пользователя: ${userProfile?.name || "неизвестно"}. ` +
+            `Своя персона: ${customPersona || "не задана"}. ` +
+            `Режим дискуссии: ${debate ? "включён" : "выключен"}. ` +
+            "Имей аккуратное мнение, объясняй просто, не выдумывай факты, признавай неопределённость и указывай уровень уверенности.",
         },
         ...history.map((item) => ({
           role: item.sender === "user" ? "user" : "assistant",
